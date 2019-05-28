@@ -20,7 +20,6 @@
 int main() {
 
     int udp_des_port = 2368;
-
     int sockListen = socket(AF_INET, SOCK_DGRAM, 0);
 
     if(sockListen == -1) {
@@ -48,14 +47,16 @@ int main() {
     char recvbuf[1206];
     // Caution: if Linux, you may use "int" to declare addrLen, that depends on your computer
     socklen_t addrLen = sizeof(struct sockaddr_in);
-
-    while (1) {
-
+    
+    int azimuth_for_first_block;
+    // the vls-128 output 21701388 packets / hour
+    for (int i=0; i<21701389; i++) {
         if((recvbytes = recvfrom(sockListen, recvbuf, 1206, 0,
             (struct sockaddr *)&recvAddr, &addrLen)) != -1) {
             //recvbuf[recvbytes] = '\0';
             //printf("receive a broadCast messgse:%s\n", recvbuf);
-            printf("%c",recvbuf[0]);
+            azimuth_for_first_block = recvbuf[3]*256 + recvbuf[2];            
+            printf("%d\n",azimuth_for_first_block);
         } else {
             printf("recvfrom fail\n");
         }
