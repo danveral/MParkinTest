@@ -44,16 +44,19 @@ int main() {
 }
 
 int send_a_UDP_pkg(int brdcFd, struct sockaddr_in theirAddr) {
-    char msg[1206] = "xxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+    char msg[1206];
+	for (int i=0; i<1206; i++) {
+		msg[i] = 'x';
+	}
 
     int sendBytes;
-    if((sendBytes = sendto(brdcFd, msg, strlen(msg), 0,
+    if((sendBytes = sendto(brdcFd, msg, 1206, 0,
             (struct sockaddr *)&theirAddr, sizeof(struct sockaddr))) == -1) {
         printf("sendto fail, errno=%d\n", errno);
         return -1;
     }
 
-    printf("msg=%s, msgLen=%zu, sendBytes=%d\n", msg, strlen(msg), sendBytes);
+    printf("sendBytes=%d\n", sendBytes);
 
     return 0;
 }
