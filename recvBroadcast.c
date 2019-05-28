@@ -1,3 +1,7 @@
+// packets loss test according to Mike Parkin's request
+// Author: Guang Ling
+// Version: v1.0
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -9,8 +13,13 @@
 #include <arpa/inet.h>
 #include <fcntl.h> // for open
 #include <unistd.h> // for close
+#include <time.h>
+
+#define TEST_HOUR 5  // Input how many hours do you want to test.
 
 int main() {
+
+    int udp_des_port = 2368;
 
     int sockListen = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -25,7 +34,7 @@ int main() {
     memset(&recvAddr, 0, sizeof(struct sockaddr_in));
     
     recvAddr.sin_family = AF_INET;
-    recvAddr.sin_port = htons(2368);
+    recvAddr.sin_port = htons(udp_des_port);
     recvAddr.sin_addr.s_addr = INADDR_ANY;
 
     int sockBind = bind(sockListen, (struct sockaddr *)&recvAddr, sizeof(struct sockaddr));
@@ -37,16 +46,16 @@ int main() {
 
     int recvbytes;
     char recvbuf[1206];
-    // Caution: if Linux, use "int" to declare addrLen, my laptop is Apple MAC
-    // That's why I used socket_t
+    // Caution: if Linux, you may use "int" to declare addrLen, that depends on your computer
     socklen_t addrLen = sizeof(struct sockaddr_in);
 
     while (1) {
 
         if((recvbytes = recvfrom(sockListen, recvbuf, 1206, 0,
             (struct sockaddr *)&recvAddr, &addrLen)) != -1) {
-            recvbuf[recvbytes] = '\0';
-            printf("receive a broadCast messgse:%s\n", recvbuf);
+            //recvbuf[recvbytes] = '\0';
+            //printf("receive a broadCast messgse:%s\n", recvbuf);
+            printf("%c",recvbuf[0]);
         } else {
             printf("recvfrom fail\n");
         }
