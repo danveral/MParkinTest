@@ -1,15 +1,17 @@
-// packets loss test according to Mike Parkin's request
+// Packets loss test according to Mike Parkin's request
 // Author: Guang Ling
 // Version: v1.0
 ////////////////////////////////////////////////////
 //
 //     IMPORTANT !!!
 //
-// This Test is for some VLS-128 sensors that under suspicion of packet loss, 
-// NOT for sensors had obvious problems.
-// use veloview or other tools to check the sensor first.
+// This test is JUST for some VLS-128 sensors that under suspicion of packet loss, 
+// NOT for other models or some obviously defective sensors.
+// Please use veloview or other tools to check the sensor first.
 //
 ////////////////////////////////////////////////////
+//
+// Already tested in Mike Parkin's mini Computer. it works well.
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -77,33 +79,54 @@ int sniff_from_udp(int sockListen, struct sockaddr_in recvAddr) {
     long sensor_time_start;
     long sensor_time_end;
     long sensor_time;
-    long time_gap;
+    long time_gap_per_hour;
+    long time_gap_per_pkg;
+    long tmp_time = 0;
+
+    FILE *fp;
+    char fname[50] = "log_for_packet_loss_";
+    time_t t;
+    char time_now[20];
+    char log[100];    
+    sprintf(time_now, "%ld", time(&t));
+    strcat(fname, time_now);
+    printf("%s\n", fname);
+
+    fp = fopen(fname,"a+");    
 
     for (int hours=0; hours < TEST_HOUR; hours++){
         for (long i=0; i<count; i++) {        
             recvbytes = recvfrom(sockListen, recvbuf, 1206, 0, (struct sockaddr *)&recvAddr, &addrLen);
             if(recvbytes != -1) {
                 sensor_time = recvbuf[1203]*256*256*256 + recvbuf[1202]*256*256 + recvbuf[1201]*256 + recvbuf[1200];   
+                time_gap_per_pkg = sensor_time - tmp_time;
                 azimuth_for_first_block = recvbuf[3]*256 + recvbuf[2];            
             } else {
                 printf("recvfrom fail\n");
             }
 
             if (i==0) {
-                sensor_time_start = recvbuf[1203]*256*256*256 + recvbuf[1202]*256*256 + recvbuf[1201]*256 + recvbuf[1200];   
+                sensor_time_start = sensor_time;   
             }
 
             if (i==(count-1)) {
-                sensor_time_end = recvbuf[1203]*256*256*256 + recvbuf[1202]*256*256 + recvbuf[1201]*256 + recvbuf[1200];
+                sensor_time_end = sensor_time;
+            }
+            tmp_time = sensor_time;
+            if (i!= 0 && time_gap_per_pkg < 240) {
+                sprintf(time_now, "%ld", time(&t));
+                printf("%s: Packets Loss Occur, sensor time gap should be 160 us, now is: %ld\n us", time_now, time_gap_per_pkg);
+                fwrite("123\n",sizeof(char),5,fp);
             }
         }
 
-        time_gap = sensor_time_end - sensor_time_start;
-        if (time_gap < 0) {
-            time_gap = time_gap + 3600000000;
+        time_gap_per_hour = sensor_time_end - sensor_time_start;
+        if (time_gap_per_hour < 0) {
+            time_gap_per_hour = time_gap_per_hour + 3600000000;
         }
-        printf("%ld\n", time_gap);
+        printf("%ld\n", time_gap_per_hour);
     }
 
     return 0;
 }
+
