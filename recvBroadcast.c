@@ -30,6 +30,8 @@
 
 int sniff_from_udp(int sockListen, struct sockaddr_in recvAddr);
 
+void write_to_log(FILE *fp, long time_gap_per_pkg);
+
 int main() {
 
     int udp_des_port = 2368;
@@ -74,7 +76,7 @@ int sniff_from_udp(int sockListen, struct sockaddr_in recvAddr) {
     int azimuth_for_first_block;
     // the vls-128 outputs around 21701388 packets / hour
     // so 20,000,000 is nearly one hour
-    long count = 2000;
+    long count = 20000000;
 
     long sensor_time_start;
     long sensor_time_end;
@@ -87,15 +89,16 @@ int sniff_from_udp(int sockListen, struct sockaddr_in recvAddr) {
     char fname[50] = "log_for_packet_loss_";
     time_t t;
     char time_now[20];
-    char log[100];    
     sprintf(time_now, "%ld", time(&t));
     strcat(fname, time_now);
     printf("%s\n", fname);
 
-    fp = fopen(fname,"a+");    
-
     for (int hours=0; hours < TEST_HOUR; hours++){
-        for (long i=0; i<count; i++) {        
+        printf("Hour %d Test Start......\n", hours);
+        for (long i=0; i<count; i++) {    
+            if (i%60000 == 0) {
+                printf("Don't worry, Test is alive..., numbers must change per 10 seconds: %ld \n", i);
+            }    
             recvbytes = recvfrom(sockListen, recvbuf, 1206, 0, (struct sockaddr *)&recvAddr, &addrLen);
             if(recvbytes != -1) {
                 sensor_time = recvbuf[1203]*256*256*256 + recvbuf[1202]*256*256 + recvbuf[1201]*256 + recvbuf[1200];   
@@ -113,10 +116,10 @@ int sniff_from_udp(int sockListen, struct sockaddr_in recvAddr) {
                 sensor_time_end = sensor_time;
             }
             tmp_time = sensor_time;
-            if (i!= 0 && time_gap_per_pkg < 240) {
-                sprintf(time_now, "%ld", time(&t));
-                printf("%s: Packets Loss Occur, sensor time gap should be 160 us, now is: %ld\n us", time_now, time_gap_per_pkg);
-                fwrite("123\n",sizeof(char),5,fp);
+            if (i!= 0 && time_gap_per_pkg > 240) {
+                fp = fopen(fname,"a+");    
+                write_to_log(fp, time_gap_per_pkg);
+                fclose(fp);
             }
         }
 
@@ -124,9 +127,25 @@ int sniff_from_udp(int sockListen, struct sockaddr_in recvAddr) {
         if (time_gap_per_hour < 0) {
             time_gap_per_hour = time_gap_per_hour + 3600000000;
         }
-        printf("%ld\n", time_gap_per_hour);
+        printf("Hour %d Test Done!......\n", hours);
     }
 
     return 0;
 }
 
+void write_to_log(FILE *fp, long time_gap_per_pkg) {
+    char log[150] = "Packets loss detected, system time (Linux time) is: ";
+    char time_now2[20];
+    char time_gap[20];
+    time_t t;
+    sprintf(time_now2, "%ld", time(&t));
+    strcat(log, time_now2);
+    char log2[50] = " , sensor time gap should be 160 us, now is: ";
+    strcat(log, log2);
+    sprintf(time_gap, "%ld", time_gap_per_pkg);
+    strcat(log, time_gap);
+    strcat(log, "\n");
+    fwrite(log, sizeof(char), 150, fp);
+    printf("%s\n", log);
+
+}
